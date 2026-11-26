@@ -40,10 +40,10 @@ const PAGE_INFO = {
   "s20": { g: "ODIE ODYSSEY", t: "Level Build", d: "Tiled 맵 배치부터 충돌·카메라·포털 연결까지의 레벨 구축" },
   "s-seoul": { g: "Cent!ent Metaverse", t: "서울 골목 동네", d: "달동네 옥상의 아침·저녁·밤" },
   "s-seoul-structure": { g: "Cent!ent Metaverse", t: "게임 구조", d: "동네 지도에서 보는 서버 판정·시간 동기화·개인 저장" },
-  "s-seoul-truck": { g: "Cent!ent Metaverse", t: "골목 시뮬레이션", d: "소독차의 경로와 아이들의 합류" },
-  "s-seoul-soccer": { g: "Cent!ent Metaverse", t: "5 대 5 축구", d: "공의 소유권과 추격 AI" },
-  "s-seoul-arcade": { g: "Cent!ent Metaverse", t: "전자오락실", d: "오락기 조작권과 관전 상태 공유" },
-  "s-seoul-release": { g: "Cent!ent Metaverse", t: "개발판 백엔드", d: "Cloudflare 버전 관리와 Stellar 실시간 게임 서버" },
+  "s-seoul-truck": { g: "Cent!ent Metaverse", t: "1980년대 서울 골목의 하루", d: "교실의 공기놀이와 저녁 골목의 소독차" },
+  "s-seoul-soccer": { g: "Cent!ent Metaverse", t: "동네에서 함께하는 미니게임", d: "복도 놀이와 운동장의 5 대 5 축구" },
+  "s-seoul-arcade": { g: "Cent!ent Metaverse", t: "골목 전자오락실, 게임 속의 게임", d: "ROBO CLASH의 조작과 관전" },
+  "s-seoul-release": { g: "Cent!ent Metaverse", t: "멀티플레이 월드의 시스템 아키텍처", d: "공유 시계·이동 판정·개발 빌드 관리" },
   "s14": { g: "BURN MY NEST", t: "Overview", d: "영화 속 세 장면을 터치 기반 미니게임으로 재구성" },
   "s15": { g: "BURN MY NEST", t: "Play", d: "장면별 입력 방식과 완료 이후의 공통 처리" },
   "s31": { g: "BURN MY NEST", t: "Production", d: "원화 선별부터 레이어 분리와 Unity 장면 조립까지" },
@@ -161,7 +161,6 @@ function prewarmSlideImages(slide) {
 function loadSlideMedia(slide, isCurrent = false) {
   slide.querySelectorAll("img[data-src]").forEach(img => {
     if (isCurrent || !img.classList.contains("seoul-loop")) prepareImage(img);
-    else img.removeAttribute("src");
   });
 
   slide.querySelectorAll("video").forEach((video, videoIndex) => {
@@ -223,6 +222,9 @@ function goTo(index, instant = false) {
   transitionCleanup = null;
   queuedDirection = 0;
   clearTimeout(revealTimer);
+  // Keep the departing GIF on screen until the slide finishes moving.
+  const departingLoop = slides[currentIndex]?.querySelector(".seoul-loop");
+  const releaseDepartingLoop = () => departingLoop?.removeAttribute("src");
   currentIndex = clamped;
 
   if (instant) deck.classList.add("no-anim");
@@ -233,6 +235,7 @@ function goTo(index, instant = false) {
   });
   if (instant) {
     void deck.offsetHeight;
+    releaseDepartingLoop();
     requestAnimationFrame(() => deck.classList.remove("no-anim"));
   }
 
@@ -245,7 +248,7 @@ function goTo(index, instant = false) {
     const style = getComputedStyle(currentSlide);
     const durations = style.transitionDuration.split(",").map(value => parseFloat(value) * (value.trim().endsWith("ms") ? 1 : 1000));
     const duration = Math.max(...durations);
-    if (!duration) return;
+    if (!duration) { releaseDepartingLoop(); return; }
     let fallback;
     const finish = () => {
       transitionCleanup();
@@ -259,6 +262,7 @@ function goTo(index, instant = false) {
     };
     transitionCleanup = () => {
       clearTimeout(fallback);
+      releaseDepartingLoop();
       currentSlide.removeEventListener("transitionend", onEnd);
     };
     currentSlide.addEventListener("transitionend", onEnd);
